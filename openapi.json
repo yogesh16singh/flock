@@ -1,0 +1,1521 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Urja Catalog API",
+    "version": "1.0.0",
+    "description": "Read-only catalog over the Urja Meter Ops portal. Fleet data is synced from the portal export into MongoDB. Register series are fetched per meter."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8080"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message"
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail"
+        ]
+      },
+      "Catalog": {
+        "type": "object",
+        "properties": {
+          "generation": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "asOf": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "ageSeconds": {
+            "type": "number"
+          },
+          "meterCount": {
+            "type": "integer"
+          },
+          "transformerCount": {
+            "type": "integer"
+          },
+          "sessionExpiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "generation",
+          "asOf",
+          "stale",
+          "ageSeconds",
+          "meterCount",
+          "transformerCount",
+          "sessionExpiresAt",
+          "lastError"
+        ]
+      },
+      "NetworkNode": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "parentPath": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "level": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "depth": {
+            "type": "integer"
+          },
+          "childCount": {
+            "type": "integer"
+          },
+          "meters": {
+            "type": "object",
+            "properties": {
+              "installed": {
+                "type": "integer"
+              },
+              "faulty": {
+                "type": "integer"
+              },
+              "decommissioned": {
+                "type": "integer"
+              },
+              "other": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "installed",
+              "faulty",
+              "decommissioned",
+              "other",
+              "total"
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "parentPath",
+          "level",
+          "code",
+          "name",
+          "depth",
+          "childCount",
+          "meters"
+        ]
+      },
+      "NetworkList": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkNode"
+            }
+          },
+          "nextCursor": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "items",
+          "nextCursor"
+        ]
+      },
+      "NetworkNodeResponse": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "item": {
+            "$ref": "#/components/schemas/NetworkNode"
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "item"
+        ]
+      },
+      "TransformerSummary": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "feederCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "capacityKva": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "meterCount": {
+            "type": "integer"
+          },
+          "ancestryPath": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "feederCode",
+          "capacityKva",
+          "meterCount",
+          "ancestryPath"
+        ]
+      },
+      "TransformerList": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransformerSummary"
+            }
+          },
+          "nextCursor": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "items",
+          "nextCursor"
+        ]
+      },
+      "TransformerDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TransformerSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "statusCounts": {
+                "type": "object",
+                "properties": {
+                  "installed": {
+                    "type": "integer"
+                  },
+                  "faulty": {
+                    "type": "integer"
+                  },
+                  "decommissioned": {
+                    "type": "integer"
+                  },
+                  "other": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "installed",
+                  "faulty",
+                  "decommissioned",
+                  "other"
+                ]
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "meterIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "statusCounts",
+              "aliases",
+              "meterIds"
+            ]
+          }
+        ]
+      },
+      "TransformerDetailResponse": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "item": {
+            "$ref": "#/components/schemas/TransformerDetail"
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "item"
+        ]
+      },
+      "MeterSummary": {
+        "type": "object",
+        "properties": {
+          "meterId": {
+            "type": "string"
+          },
+          "serialNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "make": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phase": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "installType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transformerCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "meterId",
+          "serialNumber",
+          "make",
+          "phase",
+          "status",
+          "installType",
+          "transformerCode",
+          "path"
+        ]
+      },
+      "MeterList": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeterSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "items",
+          "nextCursor"
+        ]
+      },
+      "GeoJsonPoint": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "Point"
+            ]
+          },
+          "coordinates": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ]
+      },
+      "LevelNode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "NetworkLevels": {
+        "type": "object",
+        "properties": {
+          "zone": {
+            "$ref": "#/components/schemas/LevelNode"
+          },
+          "circle": {
+            "$ref": "#/components/schemas/LevelNode"
+          },
+          "division": {
+            "$ref": "#/components/schemas/LevelNode"
+          },
+          "subdivision": {
+            "$ref": "#/components/schemas/LevelNode"
+          },
+          "substation": {
+            "$ref": "#/components/schemas/LevelNode"
+          },
+          "feeder": {
+            "$ref": "#/components/schemas/LevelNode"
+          },
+          "dt": {
+            "$ref": "#/components/schemas/LevelNode"
+          }
+        },
+        "required": [
+          "zone",
+          "circle",
+          "division",
+          "subdivision",
+          "substation",
+          "feeder",
+          "dt"
+        ]
+      },
+      "MeterDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MeterSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "build": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "location": {
+                "$ref": "#/components/schemas/GeoJsonPoint"
+              },
+              "networkRaw": {
+                "$ref": "#/components/schemas/NetworkLevels"
+              },
+              "network": {
+                "$ref": "#/components/schemas/NetworkLevels"
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "build",
+              "location",
+              "networkRaw",
+              "network",
+              "issues"
+            ]
+          }
+        ]
+      },
+      "MeterDetailResponse": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "item": {
+            "$ref": "#/components/schemas/MeterDetail"
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "item"
+        ]
+      },
+      "RegisterPoint": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "registerKwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "registerKvah": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "voltageR": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "intervalKwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "registerReset": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "at",
+          "registerKwh",
+          "registerKvah",
+          "voltageR",
+          "intervalKwh",
+          "registerReset"
+        ]
+      },
+      "Registers": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "meterId": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "cadence": {
+            "type": "string",
+            "enum": [
+              "half_hourly",
+              "daily",
+              "unknown"
+            ]
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegisterPoint"
+            }
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "meterId",
+          "from",
+          "to",
+          "cadence",
+          "points"
+        ]
+      },
+      "Place": {
+        "type": "object",
+        "properties": {
+          "meterId": {
+            "type": "string"
+          },
+          "serialNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transformerCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "distanceM": {
+            "type": "number"
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJsonPoint"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "meterId",
+          "serialNumber",
+          "status",
+          "transformerCode",
+          "distanceM",
+          "location"
+        ]
+      },
+      "PlaceList": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            }
+          },
+          "nextCursor": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "items",
+          "nextCursor"
+        ]
+      },
+      "Signal": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "unrepaired_hierarchy",
+              "transformer_name_clash",
+              "faulty_cluster"
+            ]
+          },
+          "meterId": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transformerCode": {
+            "type": "string"
+          },
+          "registryName": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "faulty": {
+            "type": "integer"
+          },
+          "meterCount": {
+            "type": "integer"
+          },
+          "share": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "SignalList": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Signal"
+            }
+          },
+          "nextCursor": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "asOf",
+          "stale",
+          "items",
+          "nextCursor"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Process and database liveness",
+        "responses": {
+          "200": {
+            "description": "MongoDB answered a ping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalog": {
+      "get": {
+        "summary": "Current catalog generation",
+        "responses": {
+          "200": {
+            "description": "Catalog freshness",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Catalog"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalog/rebuild": {
+      "post": {
+        "summary": "Reload the fleet from the portal",
+        "responses": {
+          "200": {
+            "description": "Catalog after the reload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Catalog"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/network": {
+      "get": {
+        "summary": "Children of a network path",
+        "parameters": [
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 200
+            },
+            "required": false,
+            "name": "parentPath",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 7
+            },
+            "required": false,
+            "name": "depth",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Network nodes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/network/{path}": {
+      "get": {
+        "summary": "One network node and the meters under it",
+        "description": "Path is the full code chain, for example Z-01/C-01/D-01. Encode slashes as %2F.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "path",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Network node",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkNodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transformers": {
+      "get": {
+        "summary": "Distribution transformers",
+        "responses": {
+          "200": {
+            "description": "Transformer registry joined with meter rollups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformerList"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transformers/{code}": {
+      "get": {
+        "summary": "One distribution transformer",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^DT-\\d{3}$"
+            },
+            "required": true,
+            "name": "code",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transformer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformerDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meters": {
+      "get": {
+        "summary": "Search meters",
+        "parameters": [
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 200
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "single",
+                "three"
+              ]
+            },
+            "required": false,
+            "name": "phase",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "installed",
+                "faulty",
+                "decommissioned"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 40
+            },
+            "required": false,
+            "name": "make",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^DT-\\d{3}$"
+            },
+            "required": false,
+            "name": "transformer",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 200
+            },
+            "required": false,
+            "name": "networkPath",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeterList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meters/{meterId}": {
+      "get": {
+        "summary": "Meter nameplate, hierarchy, and location",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^J\\d{6}$"
+            },
+            "required": true,
+            "name": "meterId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeterDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meters/{meterId}/registers": {
+      "get": {
+        "summary": "Cumulative registers and derived interval energy",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^J\\d{6}$"
+            },
+            "required": true,
+            "name": "meterId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "to",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Register series",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Registers"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/places": {
+      "get": {
+        "summary": "Meters near a point",
+        "parameters": [
+          {
+            "schema": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": -180,
+              "maximum": 180
+            },
+            "required": false,
+            "name": "lng",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": -90,
+              "maximum": 90
+            },
+            "required": false,
+            "name": "lat",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50000
+            },
+            "required": true,
+            "name": "radiusM",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meters inside the radius, nearest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/signals": {
+      "get": {
+        "summary": "Catalog issues the portal does not surface",
+        "responses": {
+          "200": {
+            "description": "Hierarchy gaps, name clashes, and faulty clusters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalList"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
